@@ -1,0 +1,6 @@
+.env
+.venv
+.pyc
+uv.lock
+__pycache__
+Redis-8.6.2-Windows-x64-cygwin-with-Service

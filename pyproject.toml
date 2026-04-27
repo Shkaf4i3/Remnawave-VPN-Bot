@@ -1,0 +1,17 @@
+[project]
+name = "vpnbotproject"
+version = "0.1.0"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "aiogram>=3.27.0",
+    "alembic>=1.18.4",
+    "asyncpayments>=1.5",
+    "asyncpg>=0.31.0",
+    "cryptography>=46.0.7",
+    "fastapi[all]>=0.136.0",
+    "faststream[rabbit]>=0.6.7",
+    "redis[hiredis]>=7.4.0",
+    "remnawave>=2.7.1",
+    "sqlalchemy>=2.0.49",
+    "taskiq-faststream[rabbit]>=0.4.0",
+]
