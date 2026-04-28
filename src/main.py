@@ -11,5 +11,4 @@ app.include_router(router=webhook_router)
 
 
 if __name__ == "__main__":
-    # Delete reload paramert during production
-    run(app="main:app", reload=True)
+    run(app="main:app", host="0.0.0.0", port=8000)
