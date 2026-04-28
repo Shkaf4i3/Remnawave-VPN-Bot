@@ -10,7 +10,7 @@ taskiq_scheduler = BrokerWrapper(broker=broker)
 taskiq_scheduler.task(
     schedule=[
         {
-            "cron": "* * * * *",
+            "cron": "01 00 * * *",
         },
     ],
     queue="schedule_subs",

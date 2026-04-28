@@ -1,5 +1,6 @@
 services:
   app:
+    restart: unless-stopped
     env_file:
         - .env
     image: app
@@ -21,6 +22,7 @@ services:
         condition: service_healthy
 
   redis:
+    restart: unless-stopped
     image: redis:latest
     ports:
       - 6379:6379
@@ -34,6 +36,7 @@ services:
     command: ["redis-server"]
 
   rabbitmq:
+    restart: unless-stopped
     image: rabbitmq:latest
     container_name: rabbitmq
     restart: always
@@ -56,6 +59,7 @@ services:
       retries: 5
 
   pg:
+    restart: unless-stopped
     image: postgres:latest
     container_name: postgresql
     restart: always
