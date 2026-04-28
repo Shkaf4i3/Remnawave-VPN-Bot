@@ -2,7 +2,7 @@ services:
   app:
     restart: unless-stopped
     env_file:
-        - .env
+      - .env
     image: app
     build:
       dockerfile: ./Dockerfile
@@ -13,6 +13,12 @@ services:
       redis_url: redis://redis:6379
     ports:
       - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     depends_on:
       pg:
         condition: service_healthy
@@ -20,6 +26,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - bot-network
+      - remnawave-network
 
   redis:
     restart: unless-stopped
@@ -27,16 +36,17 @@ services:
     ports:
       - 6379:6379
     volumes:
-        - redis-data:/data
+      - redis-data:/data
     healthcheck:
       test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
       interval: 1s
       timeout: 3s
       retries: 5
     command: ["redis-server"]
+    networks:
+      - bot-network
 
   rabbitmq:
-    restart: unless-stopped
     image: rabbitmq:latest
     container_name: rabbitmq
     restart: always
@@ -57,9 +67,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - bot-network
 
   pg:
-    restart: unless-stopped
     image: postgres:latest
     container_name: postgresql
     restart: always
@@ -76,6 +87,39 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - bot-network
+
+  taskiq-scheduler:
+    image: app
+    build:
+      dockerfile: ./Dockerfile
+      context: ./
+    container_name: taskiq-scheduler
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      dsn: postgresql+asyncpg://postgres:password@pg/users
+      rabbitmq_url: amqp://local:local@rabbitmq:5672/
+      redis_url: redis://redis:6379
+    depends_on:
+      pg:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "taskiq scheduler src.client.taskiq:scheduler"
+    healthcheck:
+      test: ["CMD-SHELL", "ps aux | grep -q '[t]askiq scheduler'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - bot-network
 
 volumes:
   redis-data:
@@ -88,3 +132,9 @@ volumes:
 configs:
   rabbitmq-plugins:
     content: "[rabbitmq_management]."
+
+networks:
+  bot-network:
+    driver: bridge
+  remnawave-network:
+    external: true
