@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from logging import basicConfig, INFO, getLogger
 from typing import Any, AsyncGenerator
 
+from aiogram.types import BotCommandScopeAllPrivateChats
 from fastapi import FastAPI
 
 from ..app import bot, dp
@@ -9,7 +10,7 @@ from ..core import settings, db_helper
 from ..model import Base, Tariff
 from ..repo import UnitOfWork, UserRepo, TariffRepo
 from ..service import UserService, TariffService, CacheService
-from ..aiogram_functions import CallbackAnswer
+from ..aiogram_functions import CallbackAnswer, available_commands
 from ..client import RemnawaveClient, broker, redis
 from ..deps import service_deps
 from ..rabbitmq import schedule_queue, mailing_queue, direct_exchange
@@ -31,6 +32,12 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[Any, Any]:
         drop_pending_updates=True,
         secret_token=settings.secret_token,
     )
+    exists_commands = await bot.get_my_commands(scope=BotCommandScopeAllPrivateChats())
+    if not exists_commands:
+        await bot.set_my_commands(
+            commands=available_commands,
+            scope=BotCommandScopeAllPrivateChats(),
+        )
     broker.context.set_global(key="bot", v=bot)
     await broker.start()
     await broker.declare_exchange(exchange=direct_exchange)
