@@ -111,11 +111,10 @@ services:
       redis:
         condition: service_healthy
     command: >
-      sh -c "uv run taskiq scheduler src.client.taskiq:scheduler"
+      sh -c "taskiq scheduler src.client.taskiq:scheduler"
     healthcheck:
       test: ["CMD-SHELL", "ps aux | grep -q '[t]askiq scheduler'"]
       interval: 30s
-      timeout: 10s
       timeout: 10s
       retries: 3
       start_period: 20s
@@ -139,3 +138,4 @@ networks:
     driver: bridge
   remnawave-network:
     external: true
+# this example only for server with two docker nerworks
