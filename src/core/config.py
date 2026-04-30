@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     rabbitmq_url: str
     tg_webhook_url: str
     lolz_webhook_url: str
+    heleket_webhook_url: str
     redis_url: str
     admin_ids: list[int]
     support_username: str
@@ -18,6 +19,9 @@ class Settings(BaseSettings):
     bot_token: SecretStr
     merchant_id: str
     fernet_key: str
+    heleket_send_payment_token: str
+    heleket_get_invoices_token: str
+    heleket_merchant_id: str
     guide_vpn_connect: HttpUrl
     model_config = SettingsConfigDict(
         env_file=".env",

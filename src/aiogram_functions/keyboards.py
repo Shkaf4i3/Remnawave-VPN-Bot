@@ -51,6 +51,7 @@ def get_payment_type() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(text="✅ Lolz ✅", callback_data="payment_lolz")
     builder.button(text="🦋 CryptoBot 🦋", callback_data="payment_cryptobot")
+    builder.button(text="🧩 Crypto 🧩", callback_data="payment_heleket")
     return builder.as_markup()
 
 

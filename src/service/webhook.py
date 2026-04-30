@@ -5,15 +5,17 @@ from aiogram.types import Update
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.fsm.storage.base import StorageKey
 from fastapi import HTTPException, status
+from aiohttp import ClientSession, ClientError, ClientTimeout
 
 from .payment import PaymentService
 from .user import UserService
 from .tariff import TariffService
 from .subscription import SubscriptionService
 from .analytics import AnalyticsService
+from .cache import CacheService
 from ..core import settings
 from ..app import bot, dp
-from ..dto import CryptoBotWebhookDto, LolzteamWebhookDto
+from ..dto import CryptoBotWebhookDto, LolzteamWebhookDto, HeleketPaymentWebhookDto
 from ..model import PaymentStatus
 from ..aiogram_functions import kb
 
@@ -29,19 +31,47 @@ class WebhookService:
         tariff_service: TariffService,
         subscription_service: SubscriptionService,
         analytics_service: AnalyticsService,
+        cache_service: CacheService,
     ) -> None:
         self.user_service = user_service
         self.payment_service = payment_service
         self.tariff_service = tariff_service
         self.subscription_service = subscription_service
         self.analytics_service = analytics_service
+        self.cache_service = cache_service
+
+
+    async def _get_usd_to_rub_rate(self) -> float:
+        cache_key = "forex:usd_rub"
+        cached = await self.cache_service.get_value(key=cache_key)
+        if cached:
+            return float(cached)
+        try:
+            timeout = ClientTimeout(total=5)
+            async with ClientSession(timeout=timeout) as session:
+                base_url = "https://api.heleket.com/v1/exchange-rate/USD/list"
+                async with session.get(url=base_url) as response:
+                    response_json = await response.json()
+                    result = response_json["result"]
+                    for item in result:
+                        if item["to"] == "RUB":
+                            course = float(item["course"])
+                            await self.cache_service.set_value(
+                                key="forex:usd_rub",
+                                value=course,
+                                ttl=900,
+                            )
+                            return course
+        except Exception as e:
+            logger.error("Произошла критическая ошибка - %s", str(e))
 
     def _get_fsm_storage(self) -> RedisStorage:
         return dp.storage
 
+
     async def _handle_webhook(
         self,
-        type_update: Literal["lolz", "cryptobot"],
+        type_update: Literal["lolz", "cryptobot", "heleket"],
         update: Dict[str, Any],
     ) -> None:
         try:
@@ -64,6 +94,16 @@ class WebhookService:
                 invoice_id = str(validate_model.invoice_id)
                 status = validate_model.status
                 amount = validate_model.amount
+            elif type_update == "heleket":
+                validate_model = HeleketPaymentWebhookDto.model_validate(
+                    obj=update,
+                    by_alias=True,
+                    by_name=True,
+                )
+                invoice_id = validate_model.order_id
+                status = validate_model.status
+                course = await self._get_usd_to_rub_rate()
+                amount = float(validate_model.amount) * course
             existing_payment = await self.payment_service.get_payment_by_invoice_id(
                 invoice_id=invoice_id,
             )
@@ -131,3 +171,7 @@ class WebhookService:
 
     async def handle_lolzteam_webhook_update(self, update: Dict[str, Any]) -> None:
         await self._handle_webhook(type_update="lolz", update=update)
+
+
+    async def handle_heleket_webhook_update(self, update: Dict[str, Any]) -> None:
+        await self._handle_webhook(type_update="heleket", update=update)

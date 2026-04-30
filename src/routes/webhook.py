@@ -47,3 +47,15 @@ async def handle_lolzteam_webhook_update(
     webhook_service: Annotated[WebhookService, Depends(service_deps.get_webhook_service)],
 ) -> None:
     await webhook_service.handle_lolzteam_webhook_update(update=update)
+
+
+@router.post(
+    path="/heleket",
+    summary="Handle heleket webhook",
+    description="Handle heleket webhook",
+)
+async def handle_heleket_webhook_update(
+    update: Dict[str, Any],
+    webhook_service: Annotated[WebhookService, Depends(service_deps.get_webhook_service)],
+) -> None:
+    await webhook_service.handle_heleket_webhook_update(update=update)

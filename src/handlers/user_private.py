@@ -11,7 +11,7 @@ from remnawave.exceptions import BadRequestError, ApiError, NetworkError, Server
 from ..service import UserService, PaymentService, TariffService, SubscriptionService
 from ..aiogram_functions import kb, Balance
 from ..core import settings
-from ..client import PaymentSystem, LolzTeam, CryptoBot, RemnawaveClient
+from ..client import PaymentSystem, LolzTeam, CryptoBot, RemnawaveClient, Heleket
 from ..model import PaymentStatus
 from ..utils import create_user, get_profile_subcription
 
@@ -20,6 +20,7 @@ router = Router()
 payment_system = PaymentSystem(
     crypto_bot=CryptoBot(),
     lolz_client=LolzTeam(),
+    heleket_client=Heleket(),
 )
 logger = getLogger(name=__name__)
 
@@ -313,9 +314,13 @@ async def get_type_payment_system(callback: CallbackQuery) -> None:
 @router.callback_query(F.data.startswith("payment_"))
 async def get_amount_for_top_up_balance(callback: CallbackQuery, state: FSMContext) -> None:
     callback_data = callback.data.split(sep="_")
-    text = "🌿 Введите сумму для пополнения (в рублях)🌿"
+    client = callback_data[1]
+    if client == "heleket":
+        text = "🌿 Введите сумму для пополнения (в USD)🌿"
+    else:
+        text = "🌿 Введите сумму для пополнения (в рублях)🌿"
     await state.set_state(Balance.amount)
-    await state.update_data(client=callback_data[1])
+    await state.update_data(client=client)
     await callback.message.answer(
         text=text,
         reply_markup=kb.cancel_top_up(),
@@ -345,9 +350,13 @@ async def proccess_top_up_balance(
                 if type_client == "cryptobot" else created_invoice.url
             }"
         )
+        invoice_id = (
+            str(created_invoice.invoice_id) if type_client in ["cryptobot", "lolz"]
+            else created_invoice.order_id
+        )
         await payment_service.save_payment(
             tg_id=message.from_user.id,
-            invoice_id=str(created_invoice.invoice_id),
+            invoice_id=invoice_id,
             amount=amount,
         )
         text = "✅ Ссылка на оплату успешно сгенерирована! ✅"
@@ -355,7 +364,7 @@ async def proccess_top_up_balance(
         text = (
             f"👇 Перейдите по ссылке, чтобы произвести оплату 👇\n{url}"
         )
-        await state.update_data(invoice_id=str(created_invoice.invoice_id))
+        await state.update_data(invoice_id=invoice_id)
         if type_client == "lolz":
             await state.update_data(payment_id=created_invoice.payment_id)
         response_message = await message.answer(text=text, reply_markup=kb.check_invoice())

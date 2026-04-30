@@ -87,6 +87,7 @@ def get_webhook_service(
     tariff_service: Annotated[TariffService, Depends(get_tariff_service)],
     subscription_service: Annotated[SubscriptionService, Depends(get_subscription_service)],
     analytics_service: Annotated[AnalyticsService, Depends(get_analytics_service)],
+    cache_service: Annotated[CacheService, Depends(get_cache_service)],
 ) -> WebhookService:
     return WebhookService(
         user_service=user_service,
@@ -94,4 +95,5 @@ def get_webhook_service(
         tariff_service=tariff_service,
         subscription_service=subscription_service,
         analytics_service=analytics_service,
+        cache_service=cache_service,
     )

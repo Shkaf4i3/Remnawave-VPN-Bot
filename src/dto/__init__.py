@@ -4,6 +4,7 @@ from .subscription import SubscriptionDto
 from .payment import PaymentDto
 from .cryptobot import CryptoBotWebhookDto
 from .lolzteam import LolzteamWebhookDto
+from .heleket import HeleketPaymentWebhookDto
 from .mailing import MailingTaskDto
 from .analytics import (
     QueryUsersDto,
@@ -25,4 +26,5 @@ __all__ = (
     "QueryUsersDto",
     "QueryPaymentSinglePeriodStatsDto",
     "QueryPaymentStatsDto",
+    "HeleketPaymentWebhookDto",
 )

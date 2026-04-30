@@ -1,6 +1,7 @@
 from .remnawave import RemnawaveClient
 from .cryptobot import CryptoBot
 from .lolzteam import LolzTeam
+from .heleket import Heleket
 from .payment import PaymentSystem
 from .broker_app import broker
 from .redis import redis
@@ -15,4 +16,5 @@ __all__ = (
     "broker",
     "redis" ,
     "scheduler",
+    "Heleket"
 )
