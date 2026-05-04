@@ -23,7 +23,7 @@ async def create_user(
         referred_by_id=referrer_user.id if referrer_user else None,
     )
     text = (
-        f"👋 Привет, {message.from_user.first_name} 👋. Добро пожаловать в CrazyFrootShoop VPN бот!\n"
+        f"👋 Привет, {message.from_user.first_name} 👋. Добро пожаловать в CrazyVPN бот!\n"
         "В этом боте ты сможешь приобрести конфигурации VPN на свой вкус 🛒\n"
         "Для взаимодествия с ботом воспользуйся меню ниже 👇"
     )

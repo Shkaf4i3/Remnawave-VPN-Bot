@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
-from ..model import Payment
+from ..model import Payment, PaymentStatus
 from ..dto import QueryPaymentSinglePeriodStatsDto
 
 
@@ -37,7 +37,7 @@ class PaymentRepo:
                 func.count().label("count"),
                 func.coalesce(func.sum(Payment.amount), 0).label("total_amount"),
             )
-            .where(Payment.created_at >= start_date)
+            .where(Payment.created_at >= start_date, Payment.status == PaymentStatus.PAID)
         )
         result = await self.session.execute(stmt)
         row = result.one()
@@ -58,7 +58,7 @@ class PaymentRepo:
             )
             .where(
                 Payment.created_at >= start_date,
-                Payment.created_at < end_date
+                Payment.created_at < end_date,
             )
         )
         result = await self.session.execute(stmt)
@@ -76,6 +76,7 @@ class PaymentRepo:
                 func.coalesce(func.sum(Payment.amount), 0).label("total_amount"),
             )
             .select_from(Payment)
+            .where(Payment.status == PaymentStatus.PAID)
         )
         result = await self.session.execute(stmt)
         row = result.one()
