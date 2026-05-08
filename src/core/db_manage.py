@@ -7,6 +7,8 @@ class DataBaseHelper:
     def __init__(self):
         self.session_engine = create_async_engine(
             url=settings.dsn.encoded_string(),
+            pool_pre_ping=True,
+            pool_recycle=3600,
         )
         self.session_factory = async_sessionmaker(
             bind=self.session_engine,
