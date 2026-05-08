@@ -5,7 +5,6 @@ from aiogram.types import Update
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.fsm.storage.base import StorageKey
 from fastapi import HTTPException, status
-from aiohttp import ClientSession, ClientError, ClientTimeout
 
 from .payment import PaymentService
 from .user import UserService
@@ -43,27 +42,13 @@ class WebhookService:
 
     async def _get_usd_to_rub_rate(self) -> float:
         cache_key = "forex:usd_rub"
+        backup_key = "forex:usd_rub:last_success"
         cached = await self.cache_service.get_value(key=cache_key)
         if cached:
             return float(cached)
-        try:
-            timeout = ClientTimeout(total=5)
-            async with ClientSession(timeout=timeout) as session:
-                base_url = "https://api.heleket.com/v1/exchange-rate/USD/list"
-                async with session.get(url=base_url) as response:
-                    response_json = await response.json()
-                    result = response_json["result"]
-                    for item in result:
-                        if item["to"] == "RUB":
-                            course = float(item["course"])
-                            await self.cache_service.set_value(
-                                key="forex:usd_rub",
-                                value=course,
-                                ttl=900,
-                            )
-                            return course
-        except Exception as e:
-            logger.error("Произошла критическая ошибка - %s", str(e))
+        backup = await self.cache_service.get_value(key=backup_key)
+        if backup is not None:
+            return float(backup)
 
     def _get_fsm_storage(self) -> RedisStorage:
         return dp.storage

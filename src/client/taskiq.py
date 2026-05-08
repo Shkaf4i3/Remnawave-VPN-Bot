@@ -15,6 +15,14 @@ taskiq_scheduler.task(
     ],
     queue="schedule_subs",
 )
+taskiq_scheduler.task(
+    schedule=[
+        {
+            "cron": "*/10 * * * *",
+        },
+    ],
+    queue="api_queue",
+)
 
 
 scheduler = StreamScheduler(

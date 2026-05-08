@@ -4,6 +4,7 @@ from typing import Any, AsyncGenerator
 
 from aiogram.types import BotCommandScopeAllPrivateChats
 from fastapi import FastAPI
+from aiohttp import ClientSession, ClientTimeout
 
 from ..app import bot, dp
 from ..core import settings, db_helper
@@ -13,7 +14,7 @@ from ..service import UserService, TariffService, CacheService
 from ..aiogram_functions import CallbackAnswer, available_commands
 from ..client import RemnawaveClient, broker, redis
 from ..deps import service_deps
-from ..rabbitmq import schedule_queue, mailing_queue, direct_exchange
+from ..rabbitmq import schedule_queue, mailing_queue, direct_exchange, api_queue
 
 
 logger = getLogger(name=__name__)
@@ -26,7 +27,8 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[Any, Any]:
         datefmt=r"%Y-%m-%d %H:%M:%S",
         format=r"[%(asctime)s.%(msecs)03d] %(module)10s:%(lineno)-3d %(levelname)-7s - %(message)s",
     )
-    cache = CacheService(redis=redis, default_ttl=300)
+    cache_service = CacheService(redis=redis, default_ttl=300)
+    remnawave_client = RemnawaveClient(cache_service=cache_service)
     await bot.set_webhook(
         url=settings.tg_webhook_url,
         drop_pending_updates=True,
@@ -38,11 +40,17 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[Any, Any]:
             commands=available_commands,
             scope=BotCommandScopeAllPrivateChats(),
         )
+    timeout = ClientTimeout(total=5)
+    session = ClientSession(timeout=timeout)
+    broker.context.set_global(key="cache_service", v=cache_service)
+    broker.context.set_global(key="session", v=session)
     broker.context.set_global(key="bot", v=bot)
+    broker.context.set_global(key="remnawave_client", v=remnawave_client)
     await broker.start()
     await broker.declare_exchange(exchange=direct_exchange)
     await broker.declare_queue(queue=mailing_queue)
     await broker.declare_queue(queue=schedule_queue)
+    await broker.declare_queue(queue=api_queue)
     # We import the task lazily to avoid cyclical imports.
     from ..handlers import user_router, admin_router
     dp.include_routers(
@@ -50,13 +58,11 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[Any, Any]:
         admin_router,
     )
     dp.callback_query.middleware(CallbackAnswer())
-    dp["cache"] = cache
+    dp["cache"] = cache_service
+    dp["remnawave_client"] = remnawave_client
     async with db_helper.session_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     async with db_helper.session_factory() as session:
-        cache_service = service_deps.get_cache_service()
-        remnawave_client = RemnawaveClient(cache_service=cache_service)
-        dp["remnawave_client"] = remnawave_client
         squad_id = await remnawave_client.get_internal_squads()
         unit_of_work = UnitOfWork(session=session)
         user_repo = UserRepo(session=session)
@@ -85,7 +91,7 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[Any, Any]:
                 name="Базовый (Basic)",
                 description="Для повседневного сёрфинга",
                 duration_days=30,
-                price=350,
+                price=200,
                 device_limit=2,
                 remnawave_squad_id=str(squad_id[0]),
             ),
@@ -93,7 +99,7 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[Any, Any]:
                 name="Оптимальный (Optimal)",
                 description="Активное использование (загрузки, онлайн игры)",
                 duration_days=30,
-                price=650,
+                price=400,
                 device_limit=3,
                 remnawave_squad_id=str(squad_id[0]),
             ),
@@ -101,7 +107,7 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[Any, Any]:
                 name="Максимальный (Max)",
                 description="Семейный или корпоративный доступ",
                 duration_days=90,
-                price=1500,
+                price=800,
                 device_limit=5,
                 remnawave_squad_id=str(squad_id[0]),
             ),
@@ -119,5 +125,8 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[Any, Any]:
                 )
     yield
     broker.context.reset_global(key="bot")
+    broker.context.reset_global(key="session")
+    broker.context.reset_global(key="cache_service")
+    broker.context.reset_global(key="remnawave_client")
     await broker.stop()
     await bot.session.close()

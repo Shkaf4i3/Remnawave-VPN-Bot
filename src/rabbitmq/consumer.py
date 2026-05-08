@@ -11,6 +11,7 @@ from aiogram.exceptions import (
     TelegramAPIError,
 )
 from remnawave.enums import UserStatus
+from aiohttp import ClientSession, ClientTimeout
 
 from ..client import broker, redis, RemnawaveClient
 from ..dto import MailingTaskDto
@@ -24,18 +25,49 @@ from ..model import SubscriptionStatus
 logger = getLogger(name=__name__)
 mailing_queue = RabbitQueue(name="send-mailing", routing_key="tg_id", durable=True)
 schedule_queue = RabbitQueue(name="schedule_subs", routing_key="subs_id", durable=True)
+api_queue = RabbitQueue(name="api_queue", routing_key="api_id", durable=True)
+
+
+@broker.subscriber(queue=api_queue, exchange=direct_exchange)
+async def update_usd_to_rub_rate_by_api(
+    message: RabbitMessage,
+    session: ClientSession = Context("session"),
+    cache_service: CacheService = Context("cache_service"),
+) -> None:
+    cache_key = "forex:usd_rub"
+    backup_key = "forex:usd_rub:last_success"
+    try:
+        base_url = "https://api.heleket.com/v1/exchange-rate/USD/list"
+        async with session.get(url=base_url) as response:
+            response.raise_for_status()
+            response_data = await response.json()
+            result = response_data["result"]
+            course = None
+            for item in result:
+                if item["to"] == "RUB":
+                    course = float(item["course"])
+                    break
+            if course is None:
+                await message.reject(requeue=False)
+                return
+            await cache_service.set_value(key=cache_key, value=course, ttl=900)
+            await cache_service.set_value(key=backup_key, value=course, ttl=0)
+            logger.info("Курс USD/RUB обновлён: %s", course)
+            await message.ack()
+    except Exception as e:
+        logger.error("Ошибка обновления курса USD/RUB: %s", e)
+        await message.nack(requeue=True)
 
 
 @broker.subscriber(queue=schedule_queue, exchange=direct_exchange)
 async def sync_subscriptions_task(
     message: RabbitMessage,
     bot: Bot = Context("bot"),
+    remnawave_client: RemnawaveClient = Context("remnawave_client"),
 ) -> None:
     async with db_helper.session_factory() as session:
         subscription_repo = SubscriptionRepo(session=session)
         user_repo = UserRepo(session=session)
-        cache_service = CacheService(redis=redis, default_ttl=300)
-        remnawave_client = RemnawaveClient(cache_service=cache_service)
         subscriptions = await subscription_repo.get_active_subscriptions()
         for subscription in subscriptions:
             try:

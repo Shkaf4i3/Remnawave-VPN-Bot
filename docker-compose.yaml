@@ -111,7 +111,7 @@ services:
       redis:
         condition: service_healthy
     command: >
-      sh -c "taskiq scheduler src.client.taskiq:scheduler"
+      sh -c "uv run taskiq scheduler src.client.taskiq:scheduler"
     healthcheck:
       test: ["CMD-SHELL", "ps aux | grep -q '[t]askiq scheduler'"]
       interval: 30s

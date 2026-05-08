@@ -1,5 +1,5 @@
 from orjson import loads, dumps
-from typing import Any, Callable, Coroutine
+from typing import Any
 
 from redis.asyncio import Redis
 
@@ -18,23 +18,13 @@ class CacheService:
 
 
     async def set_value(self, key: str, value: Any, ttl: int | None = None) -> None:
-        ttl = ttl or self.default_ttl
-        await self.redis.set(name=key, value=dumps(value), ex=ttl)
+        if ttl is None:
+            ttl = self.default_ttl
+        if ttl > 0:
+            await self.redis.set(name=key, value=dumps(value), ex=ttl)
+        else:
+            await self.redis.set(name=key, value=dumps(value))
 
 
     async def delete_key(self, key: str) -> None:
         await self.redis.delete(key)
-
-
-    async def remember_value(
-        self,
-        key: str,
-        callback: Callable[[], Coroutine[Any, Any, Any]],
-        ttl: int | None = None,
-    ) -> Any:
-        cached = await self.get_value(key=key)
-        if cached is not None:
-            return cached
-        value = await callback()
-        await self.set_value(key=key, value=value, ttl=ttl)
-        return value
