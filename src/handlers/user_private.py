@@ -2,8 +2,15 @@ from logging import getLogger
 from datetime import datetime, timezone, timedelta
 
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
-from aiogram.filters import CommandObject, CommandStart, Command
+from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove, ChatMemberUpdated
+from aiogram.filters import (
+    CommandObject,
+    CommandStart,
+    Command,
+    ChatMemberUpdatedFilter,
+    IS_MEMBER,
+    IS_NOT_MEMBER,
+)
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.deep_linking import create_start_link
 from remnawave.exceptions import BadRequestError, ApiError, NetworkError, ServerError
@@ -48,6 +55,20 @@ async def start_message_without_deep_link(
         message=message,
         user_service=user_service,
     )
+
+
+@router.my_chat_member(ChatMemberUpdatedFilter(IS_MEMBER >> IS_NOT_MEMBER))
+async def bot_blocked(event: ChatMemberUpdated, user_service: UserService) -> None:
+    tg_id = event.from_user.id
+    await user_service.update_blocked_status_user(tg_id=tg_id)
+    logger.info("Пользователь %s заблокировал бота", tg_id)
+
+
+@router.my_chat_member(ChatMemberUpdatedFilter(IS_NOT_MEMBER >> IS_MEMBER))
+async def bot_unlocked(event: ChatMemberUpdated, user_service: UserService) -> None:
+    tg_id = event.from_user.id
+    await user_service.update_blocked_status_user(tg_id=tg_id)
+    logger.info("Пользователь %s разблокировал бота", tg_id)
 
 
 @router.message(Command("menu"))

@@ -25,7 +25,7 @@ class User(Base):
     first_name: Mapped[str | None] = mapped_column(String, nullable=True)
     last_name: Mapped[str | None] = mapped_column(String, nullable=True)
     username: Mapped[str | None] = mapped_column(String, nullable=True)
-    is_blocked: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    is_blocked: Mapped[bool | None] = mapped_column(Boolean, default=False)
     balance: Mapped[float] = mapped_column(
         Numeric(precision=10, scale=5, asdecimal=False),
         nullable=False,

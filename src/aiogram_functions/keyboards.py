@@ -25,12 +25,19 @@ def admin_menu_kb() -> ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
     builder.button(text="📊 Стастистика бота 📊")
     builder.button(text="💬 Рассылка 💬")
-    return builder.as_markup(resize_keyboard=True)
+    builder.button(text="📕 Бесплатно выдать баланс пользователю 📕")
+    return builder.adjust(2).as_markup(resize_keyboard=True)
 
 
 def cancel_mailing() -> ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
     builder.button(text="❌ Отменить рассылку ❌")
+    return builder.as_markup(resize_keyboard=True)
+
+
+def cancel_top_up_balance() -> ReplyKeyboardMarkup:
+    builder = ReplyKeyboardBuilder()
+    builder.button(text="❌ Отменить бесплатное пополнение ❌")
     return builder.as_markup(resize_keyboard=True)
 
 

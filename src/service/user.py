@@ -106,6 +106,15 @@ class UserService:
             await self.user_repo.save_user(user=exists_user)
 
 
+    @transactional
+    async def update_blocked_status_user(self, tg_id: int) -> None:
+        exists_user = await self.user_repo.get_user_by_tg_id(tg_id=tg_id)
+        if exists_user:
+            exists_user.is_blocked = not exists_user.is_blocked
+            exists_user.updated_at = datetime.now(tz=timezone.utc)
+            await self.user_repo.save_user(user=exists_user)
+
+
     async def get_list_users(self) -> list[UserDto]:
         users = await self.user_repo.get_list_users()
         return [user_mappings.map_user(user=user) for user in users]

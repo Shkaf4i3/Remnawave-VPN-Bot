@@ -1,9 +1,11 @@
+from logging import getLogger
+
 from aiogram import Router, F
 from aiogram.types import Message
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
-from ..aiogram_functions import IsAdmin, kb, Mailing
+from ..aiogram_functions import IsAdmin, kb, Mailing, User
 from ..rabbitmq import mailing_message_to_users
 from ..service import UserService, AnalyticsService
 from ..dto import QueryPaymentSinglePeriodStatsDto
@@ -11,12 +13,75 @@ from ..dto import QueryPaymentSinglePeriodStatsDto
 
 router = Router()
 router.message.filter(IsAdmin())
+logger = getLogger(name=__name__)
 
 
 @router.message(Command("admin_menu"))
 async def admin_menu_message(message: Message) -> None:
     text = f"Добро пожаловать в меню, {message.from_user.first_name}"
     await message.answer(text=text, reply_markup=kb.admin_menu_kb())
+
+
+@router.message(F.text == "📕 Бесплатно выдать баланс пользователю 📕")
+async def get_id_user_for_top_up_balance(message: Message, state: FSMContext) -> None:
+    await state.set_state(state=User.tg_id)
+    text = (
+        "📲 Введите сумму и телеграм id пользователя, которому хотите пополнить баланс 📲\n"
+        "Отправка должна идти в формате tg_id:balance"
+    )
+    await message.answer(text=text, reply_markup=kb.cancel_top_up_balance())
+
+
+@router.message(F.text == "❌ Отменить бесплатное пополнение ❌")
+async def cancel_top_up_balance_user(message: Message, state: FSMContext) -> None:
+    current_state = await state.get_state()
+    if current_state is None:
+        text = "❌ Вы не запрашивали пополнение баланса пользователя! ❌"
+        await message.answer(text=text, reply_markup=kb.admin_menu_kb())
+        return
+    await state.clear()
+    text = "✅ Вы отменили пополнение баланса пользователя ✅"
+    await message.answer(text=text, reply_markup=kb.admin_menu_kb())
+
+
+@router.message(User.tg_id, F.text)
+async def top_up_balance_user(
+    message: Message,
+    state: FSMContext,
+    user_service: UserService,
+) -> None:
+    try:
+        await state.update_data(user=message.text.split(sep=":"))
+        data = await state.get_data()
+        user: list[str] = data.get("user")
+        if len(user) != 2:
+            text = "❌ Вы отправили неправильный формат данных, попробуйте еще раз ❌"
+            await message.answer(text=text)
+            return
+        tg_id = int(user[0])
+        amount = float(user[1])
+        current_user_in_db = await user_service.get_user_by_tg_id(tg_id=tg_id)
+        if current_user_in_db is None:
+            text = "❌ Пользователя не существует в нашем боте ❌"
+            await message.answer(text=text)
+            return
+        if current_user_in_db.is_blocked:
+            text = "❌ Пользователь заблокировал бота ❌"
+            await message.answer(text=text)
+            return
+        await user_service.update_balance_user(
+            tg_id=tg_id,
+            amount=amount,
+            type_update="plus",
+        )
+        text = f"📊 Вы успешно пополнили баланс юзера {tg_id} на сумму - {amount} 📊"
+        await message.answer(text=text, reply_markup=kb.admin_menu_kb())
+        await state.clear()
+    except Exception as e:
+        logger.error("Произошла непредвиденная ошибка - %s", str(e))
+        text = "❌ Произошла непредвиденная ошибка, попробуйте еще раз ❌"
+        await message.answer(text=text)
+        return
 
 
 @router.message(F.text == "📊 Стастистика бота 📊")

@@ -7,3 +7,7 @@ class Balance(StatesGroup):
 
 class Mailing(StatesGroup):
     mailing_message = State()
+
+
+class User(StatesGroup):
+    tg_id = State()

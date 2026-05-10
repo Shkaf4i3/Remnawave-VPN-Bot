@@ -11,7 +11,7 @@ class UserDto(BaseModel):
     balance: float
     role: Role
     created_at: datetime
-    is_blocked: bool | None = None
+    is_blocked: bool
     updated_at: datetime | None = None
     first_name: str | None = None
     last_name: str | None = None
