@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from enum import Enum as enum
 
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, DateTime, Enum, func, ForeignKey, BigInteger, TypeDecorator, UUID
+from sqlalchemy import String, DateTime, Enum, func, ForeignKey, TypeDecorator, UUID
 from cryptography.fernet import Fernet
 
 from .base import Base

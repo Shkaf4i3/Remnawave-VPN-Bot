@@ -11,7 +11,7 @@ from aiogram.exceptions import (
     TelegramAPIError,
 )
 from remnawave.enums import UserStatus
-from aiohttp import ClientSession, ClientTimeout
+from aiohttp import ClientSession
 
 from ..client import broker, redis, RemnawaveClient
 from ..dto import MailingTaskDto
