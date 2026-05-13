@@ -17,6 +17,7 @@ from ..app import bot, dp
 from ..dto import CryptoBotWebhookDto, LolzteamWebhookDto, HeleketPaymentWebhookDto
 from ..model import PaymentStatus
 from ..aiogram_functions import kb
+from ..client import PaymentSystem
 
 
 logger = getLogger(name=__name__)
@@ -31,6 +32,7 @@ class WebhookService:
         subscription_service: SubscriptionService,
         analytics_service: AnalyticsService,
         cache_service: CacheService,
+        payment_system: PaymentSystem,
     ) -> None:
         self.user_service = user_service
         self.payment_service = payment_service
@@ -38,6 +40,7 @@ class WebhookService:
         self.subscription_service = subscription_service
         self.analytics_service = analytics_service
         self.cache_service = cache_service
+        self.payment_system = payment_system
 
 
     async def _get_usd_to_rub_rate(self) -> float:
@@ -147,6 +150,7 @@ class WebhookService:
         dp["tariff_service"] = self.tariff_service
         dp["subscription_service"] = self.subscription_service
         dp["analytics_service"] = self.analytics_service
+        dp["payment_system"] = self.payment_system
         await dp.feed_update(bot=bot, update=new_update)
 
 

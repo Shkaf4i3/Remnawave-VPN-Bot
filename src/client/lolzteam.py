@@ -1,9 +1,9 @@
 from time import time_ns
 
 from AsyncPayments.lolz import AsyncLolzteamMarketPayment
-from AsyncPayments.lolz.api import Invoice as LolzInvoice
 
 from ..core import settings
+from .invoice import Invoice
 
 
 class LolzTeam:
@@ -19,10 +19,10 @@ class LolzTeam:
         amount: float,
         required_telegram_id: int,
         required_telegram_username: str,
-    ) -> LolzInvoice:
+    ) -> Invoice:
         payment_id = self._generate_payment_id()
         url_success = "https://t.me/zakaztestbots_bot"
-        return await self.lolz_client.create_invoice(
+        invoice = await self.lolz_client.create_invoice(
             amount=amount,
             payment_id=payment_id,
             comment=f"Create new payment by id {payment_id}",
@@ -34,10 +34,8 @@ class LolzTeam:
             required_telegram_username=required_telegram_username,
             url_callback=settings.lolz_webhook_url,
         )
-
-
-    async def check_invoice(self, invoice_id: str, payment_id: str) -> LolzInvoice:
-        return await self.lolz_client.get_invoice(
-            invoice_id=invoice_id,
-            payment_id=payment_id,
+        return Invoice(
+            invoice_id=str(invoice.invoice_id),
+            url=invoice.url,
+            payment_id=invoice.payment_id,
         )

@@ -1,9 +1,9 @@
 from uuid import uuid4
 
 from HeleketAPI import HeleketClient
-from HeleketAPI.types import PaymentInfoResponse
 
 from ..core import settings
+from .invoice import Invoice
 
 
 class Heleket:
@@ -17,10 +17,10 @@ class Heleket:
         return str(uuid4())
 
 
-    async def create_invoice(self, amount: float) -> PaymentInfoResponse:
+    async def create_invoice(self, amount: float) -> Invoice:
         order_id = self._generate_order_id()
         url_success = "https://t.me/zakaztestbots_bot"
-        return await self.heleket_client.create_invoice(
+        invoice = await self.heleket_client.create_invoice(
             amount=amount,
             currency="USD",
             order_id=order_id,
@@ -28,10 +28,4 @@ class Heleket:
             url_callback=settings.heleket_webhook_url,
             lifetime=600,
         )
-
-
-    async def check_invoice(self, order_id: str, uuid: str) -> PaymentInfoResponse:
-        return await self.heleket_client.get_payment_info(
-            order_id=order_id,
-            uuid=uuid,
-        )
+        return Invoice(invoice_id=invoice.order_id, url=invoice.url)

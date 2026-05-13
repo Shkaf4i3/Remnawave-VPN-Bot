@@ -18,17 +18,12 @@ from remnawave.exceptions import BadRequestError, ApiError, NetworkError, Server
 from ..service import UserService, PaymentService, TariffService, SubscriptionService
 from ..aiogram_functions import kb, Balance
 from ..core import settings
-from ..client import PaymentSystem, LolzTeam, CryptoBot, RemnawaveClient, Heleket
+from ..client import RemnawaveClient, PaymentSystem
 from ..model import PaymentStatus
 from ..utils import create_user, get_profile_subcription
 
 
 router = Router()
-payment_system = PaymentSystem(
-    crypto_bot=CryptoBot(),
-    lolz_client=LolzTeam(),
-    heleket_client=Heleket(),
-)
 logger = getLogger(name=__name__)
 
 
@@ -353,6 +348,7 @@ async def proccess_top_up_balance(
     message: Message,
     state: FSMContext,
     payment_service: PaymentService,
+    payment_system: PaymentSystem,
 ) -> None:
     try:
         await state.update_data(amount=float(message.text))
@@ -365,16 +361,9 @@ async def proccess_top_up_balance(
             required_telegram_id=message.from_user.id,
             required_telegram_username=message.from_user.first_name,
         )
-        url = (
-            f"{
-                created_invoice.bot_invoice_url
-                if type_client == "cryptobot" else created_invoice.url
-            }"
-        )
-        invoice_id = (
-            str(created_invoice.invoice_id) if type_client in ["cryptobot", "lolz"]
-            else created_invoice.order_id
-        )
+        url = created_invoice.url
+        invoice_id = created_invoice.invoice_id
+        payment_id = created_invoice.payment_id
         await payment_service.save_payment(
             tg_id=message.from_user.id,
             invoice_id=invoice_id,
@@ -387,7 +376,7 @@ async def proccess_top_up_balance(
         )
         await state.update_data(invoice_id=invoice_id)
         if type_client == "lolz":
-            await state.update_data(payment_id=created_invoice.payment_id)
+            await state.update_data(payment_id=payment_id)
         response_message = await message.answer(text=text, reply_markup=kb.check_invoice())
         await state.update_data(message_delete_id=response_message.message_id)
     except ValueError:
@@ -406,6 +395,7 @@ async def cancel_top_up_balance(
     callback: CallbackQuery,
     state: FSMContext,
     payment_service: PaymentService,
+    payment_system: PaymentSystem,
 ) -> None:
     data = await state.get_data()
     invoice_id = data.get("invoice_id")

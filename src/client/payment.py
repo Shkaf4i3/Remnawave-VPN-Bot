@@ -1,12 +1,9 @@
 from typing import Literal
 
-from AsyncPayments.cryptoBot.api import Invoice as CryptoInvoice
-from AsyncPayments.lolz.api import Invoice as LolzInvoice
-from HeleketAPI.types import PaymentInfoResponse
-
 from .cryptobot import CryptoBot
 from .lolzteam import LolzTeam
 from .heleket import Heleket
+from .invoice import Invoice
 
 
 class PaymentSystem:
@@ -27,7 +24,7 @@ class PaymentSystem:
         amount: float,
         required_telegram_id: int | None = None,
         required_telegram_username: str | None = None,
-    ) -> CryptoInvoice | LolzInvoice | PaymentInfoResponse:
+    ) -> Invoice:
         if type_client == "lolz":
             return await self.lolz_client.create_invoice(
                 amount=amount,

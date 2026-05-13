@@ -19,7 +19,20 @@ from .repos import (
     get_tariff_repo,
     get_subscription_repo,
 )
-from ..client import redis
+from .clients import get_crypto_bot, get_heleket, get_lolz_team
+from ..client import redis, CryptoBot, LolzTeam, Heleket, PaymentSystem
+
+
+def get_payment_system(
+    crypto_bot: Annotated[CryptoBot, Depends(get_crypto_bot)],
+    lolz_client: Annotated[LolzTeam, Depends(get_lolz_team)],
+    heleket_client: Annotated[Heleket, Depends(get_heleket)],
+) -> PaymentSystem:
+    return PaymentSystem(
+        crypto_bot=crypto_bot,
+        lolz_client=lolz_client,
+        heleket_client=heleket_client,
+    )
 
 
 def get_cache_service() -> CacheService:
@@ -88,6 +101,7 @@ def get_webhook_service(
     subscription_service: Annotated[SubscriptionService, Depends(get_subscription_service)],
     analytics_service: Annotated[AnalyticsService, Depends(get_analytics_service)],
     cache_service: Annotated[CacheService, Depends(get_cache_service)],
+    payment_system: Annotated[PaymentSystem, Depends(get_payment_system)],
 ) -> WebhookService:
     return WebhookService(
         user_service=user_service,
@@ -96,4 +110,5 @@ def get_webhook_service(
         subscription_service=subscription_service,
         analytics_service=analytics_service,
         cache_service=cache_service,
+        payment_system=payment_system,
     )

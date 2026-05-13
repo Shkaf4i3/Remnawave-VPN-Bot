@@ -15,7 +15,8 @@ from remnawave.models.hwid import HwidDeviceDto
 from remnawave.enums import UserStatus, TrafficLimitStrategy
 
 from ..core import settings
-from ..service import CacheService
+# We are using the abstract import to avoid circular imports
+from src.service.cache import CacheService
 
 
 class RemnawaveClient:
