@@ -255,8 +255,9 @@ async def buy_tariff(
             text = "❌ Недостаточно средств на вашем счету, пополните баланс! ❌"
             await callback.message.edit_text(text=text)
             return
+        username = f"user_{existing_user.tg_id}"
         created_remnawave_user = await remnawave_client.create_new_user(
-            username=existing_user.first_name,
+            username=username,
             expire_at=expires_at,
             telegram_id=existing_user.tg_id,
             hwid_device_limit=existing_tariff.device_limit,
