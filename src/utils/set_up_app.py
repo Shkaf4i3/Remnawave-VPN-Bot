@@ -1,10 +1,12 @@
 from contextlib import asynccontextmanager
 from logging import basicConfig, INFO, getLogger
 from typing import Any, AsyncGenerator
+from ssl import create_default_context
+from certifi import where
 
 from aiogram.types import BotCommandScopeAllPrivateChats
 from fastapi import FastAPI
-from aiohttp import ClientSession, ClientTimeout
+from aiohttp import ClientSession, ClientTimeout, TCPConnector
 
 from ..app import bot, dp
 from ..core import settings, db_helper
@@ -39,8 +41,10 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[Any, Any]:
             commands=available_commands,
             scope=BotCommandScopeAllPrivateChats(),
         )
-    timeout = ClientTimeout(total=5)
-    async with ClientSession(timeout=timeout) as session:
+    timeout = ClientTimeout(total=30, connect=5, sock_read=15)
+    ssl_context = create_default_context(cafile=where())
+    connector = TCPConnector(ssl=ssl_context)
+    async with ClientSession(timeout=timeout, connector=connector) as session:
         broker.context.set_global(key="cache_service", v=cache_service)
         broker.context.set_global(key="session", v=session)
         broker.context.set_global(key="bot", v=bot)

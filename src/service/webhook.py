@@ -17,7 +17,8 @@ from ..app import bot, dp
 from ..dto import CryptoBotWebhookDto, LolzteamWebhookDto, HeleketPaymentWebhookDto
 from ..model import PaymentStatus
 from ..aiogram_functions import kb
-from ..client import PaymentSystem
+# We are using the abstract import to avoid circular imports
+from src.client.payment import PaymentSystem
 
 
 logger = getLogger(name=__name__)
