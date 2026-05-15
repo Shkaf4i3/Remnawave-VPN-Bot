@@ -110,9 +110,9 @@ def get_type_extending_subscribe(subscription_id: str) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     buttons = [
         {"text": "🌟 3 дн. | 50 RUB.", "callback_data": f"days_3_{subscription_id}_50"},
-        {"text": "🌟 30 дн. | 350 RUB.", "callback_data": f"days_30_{subscription_id}_350"},
-        {"text": "🌟 45 дн. | 500 RUB.", "callback_data": f"days_45_{subscription_id}_500"},
-        {"text": "🌟 90 дн. | 1500 RUB.", "callback_data": f"days_90_{subscription_id}_1200"},
+        {"text": "🌟 30 дн. | 200 RUB.", "callback_data": f"days_30_{subscription_id}_200"},
+        {"text": "🌟 45 дн. | 400 RUB.", "callback_data": f"days_45_{subscription_id}_400"},
+        {"text": "🌟 90 дн. | 800 RUB.", "callback_data": f"days_90_{subscription_id}_800"},
     ]
     for button in buttons:
         builder.button(text=button.get("text"), callback_data=button.get("callback_data"))
